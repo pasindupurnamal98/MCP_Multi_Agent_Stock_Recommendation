@@ -1,0 +1,8 @@
+# YouTube Tutorial Link - https://youtu.be/NF2aRqIlYNE
+
+python-dotenv
+langchain
+langgraph
+langchain-mcp-adapters
+langchain-openai
+langgraph_supervisor
