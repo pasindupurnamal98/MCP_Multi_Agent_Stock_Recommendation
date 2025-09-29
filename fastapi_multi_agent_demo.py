@@ -1,3 +1,4 @@
+import os
 import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -33,6 +34,7 @@ async def run_agent(query: str):
             },
         }
     )
+    
     tools = await client.get_tools()
     #model = init_chat_model(model="openai:gpt-4.1", api_key = os.getenv("OPENAI_API_KEY"))
 
@@ -100,19 +102,38 @@ async def run_agent(query: str):
         output_mode="full_history",
     ).compile()
 
-    for chunk in supervisor.stream(
-    {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": query,
-                }
-            ]
-        },
+     # Collect outputs
+    results = []
+    async for chunk in supervisor.astream(
+        {
+            "messages": [{"role": "user", "content": query}]
+        }
     ):
-        pretty_print_messages(chunk, last_message=True)
+        messages = convert_to_messages(chunk["supervisor"]["messages"])
+        # Collect only assistant responses
+        for m in messages:
+            if m.type == "ai":
+                results.append(m.content)
 
-    final_message_history = chunk["supervisor"]["messages"]
+    return results
 
+# -----------------------------
+# FASTAPI APP
+# -----------------------------
+app = FastAPI()
+
+class QueryRequest(BaseModel):
+    query: str
+
+@app.post("/query")
+async def query_endpoint(req: QueryRequest):
+    output = await run_agent(req.query)
+    return {"response": output}
+
+
+# -----------------------------
+# ENTRYPOINT (Uvicorn Launch)
+# -----------------------------
 if __name__ == "__main__":
-    asyncio.run(run_agent("Give me good stock recommendation from NSE"))
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
