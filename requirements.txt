@@ -6,3 +6,6 @@ langgraph
 langchain-mcp-adapters
 langchain-openai
 langgraph_supervisor
+
+fastapi
+uvicorn[standard]
